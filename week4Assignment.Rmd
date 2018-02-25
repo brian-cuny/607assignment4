@@ -1,0 +1,158 @@
+---
+output: html_document
+---
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<link rel="stylesheet" href="./custom.css">
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(zoo)
+library(stringr)
+library(magrittr)
+library(knitr)
+```
+
+<div class='jumbotron'>
+  <h2 class='display-3 text-uppercase'>week 4 Assignment</h2>
+  <h4 class='right text-uppercase'>By Brian Weinfeld</h4>
+  <div class='clearfix'></div>
+  <h5 class='right text-uppercase'>February 25, 2018</h5>
+</div>
+
+<div class='page-header text-uppercase'>
+  <h3>Tidying Up</h3>
+</div>
+
+<div class='well'>
+  There are a number of transformations that needed to be performed on the original csv file in order to make it tidy. I performed all of these transformations in a row with the pipe (%>%) operator. Below I have seperated the transformations for clarity. The complete, working, original code is below.
+</div>
+
+```{r}
+wide.data <- read.csv('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\assignments\\week4Assignment.csv', head=TRUE, stringsAsFactors=FALSE, na.strings='')
+kable(wide.data)
+```
+
+<div class='well'>
+  The original data once read into R has a number of alterations that need to be made. First, I renamed the first two columns to better identify the data and then I filtered out the empty row.
+</div>
+
+```{r}
+wide.data %<>% rename(company=X, status=X.1) %>%
+  filter(status!='')
+kable(wide.data)
+```
+
+<div class='well'>
+  There is a helpful method in the 'zoo' library named na.locf() that fills in N/A elements in a row by copying forward the previous non-N/A element. This can be used to fill in the missing company names.
+</div>
+
+```{r}
+wide.data %<>% na.locf()
+kable(wide.data)
+```
+
+<div class='well'>
+  Next I used gather to move the 5 locations from column headers to rows.
+</div>
+
+```{r}
+wide.data %<>%  gather('dest', 'count', 3:7)
+kable(wide.data)
+```
+
+<div class='well'>
+  Then I used spread to move the on time and delayed rows into columns.
+</div>
+
+```{r}
+wide.data %<>% spread('status', 'count')
+kable(wide.data)
+```
+
+<div class='well'>
+  At this point the data is now tidy, however there are still a number of modifications I would like to make on the data. I replaced all the periods (.) with spaces in order to better format the location names and then I converted all the elements to their appropriate types. Finally, I converted the whole structure into a tibble() to aid in my analysis.
+</div>
+
+```{r}
+wide.data %<>% map(~str_replace_all(., '\\.', ' ') %>% 
+                    type.convert(.)
+                  ) %>%
+  as.tibble() 
+kable(wide.data)
+```
+
+<div class='well'>
+  The original piped code is written below.
+</div>
+
+```{r}
+wide.data <- read.csv('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\assignments\\week4Assignment.csv', 
+                      head=TRUE, stringsAsFactors=FALSE, na.strings='') %>%
+  rename(company=X, status=X.1) %>%
+  filter(status != '') %>%
+  na.locf() %>%
+  gather('dest', 'count', 3:7) %>%
+  spread('status', 'count') %>%
+  map(~str_replace_all(., '\\.', ' ') %>% 
+        type.convert(.)
+      ) %>%
+  as.tibble() 
+```
+
+<div class='page-header text-uppercase'>
+  <h3>Analysis</h3>
+</div>
+
+<div class='well'>
+  I began by comparing the rate of on time arrivals between the two companies for each of their 5 locations.
+</div>
+
+```{r}
+wide.data %>%
+  mutate(prop=`on time`/(`on time` + delayed)) %>%
+  ggplot() + 
+  geom_histogram(aes(x=dest, y=prop, fill=company), stat='identity', position='dodge') + 
+  labs(y='Proportion of On Time Flights', x='Destination', fill='Company', 
+       title='Comparison of Rate of on Time Arrivals') +
+  coord_flip() +
+  guides(fill=guide_legend(reverse=TRUE))
+```
+
+<div class='well'>
+  The graph provides clear evidence that ALASKA has a higher proportion of on time arrivals across the board when compared to AM WEST. This would seem to indicate that ALASKA is the company with the better record. However, something odd happens when the total proportion of on time arrivals is compared.
+</div>
+
+```{r}
+wide.data %>%
+  group_by(company) %>%
+  summarise(propotion=sum(`on time`) / (sum(delayed) + sum(`on time`)))
+```
+
+<div class='well'>
+  This summary shows that AM WEST has a higher overall proportion of on time arrivals across all of their flights. This seems contradictory. After all, how could ALASKA have better rates in every head-to-head comparison but still have a worse overall on time rate? The answer lies in the count.
+</div>
+
+```{r}
+wide.data %>%
+  count(company, wt=delayed + `on time`)
+```
+
+<div class='well'>
+  <p>It turns out that there is a wide discrepency in the number of flights offered by ALASKA and AM WEST. This is a well examined statistical phenomena where grouping the elements and examining them seperately can result in different answers. This is a result of the vastly different sizes of each one of the counts. </p>
+  <p>The data is summarized below.
+</div>
+
+```{r}
+wide.data %>%
+  group_by(company) %>%
+  summarise(delayed=sum(delayed),
+            `on time`=sum(`on time`),
+            total=sum(delayed) + sum(`on time`),
+            propotion=sum(`on time`) / (sum(delayed) + sum(`on time`))
+  )
+```
+
+<div class='alert alert-success'>
+In conclusion, ALASKA offered a higher proportion of on time flights for each of the observed destinations when compared to AM WEST. However, the number of flights to each location varies wildly and may affect which company should be selected.
+</div>
