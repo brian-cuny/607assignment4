@@ -17,7 +17,7 @@ library(knitr)
   <h2 class='display-3 text-uppercase'>week 4 Assignment</h2>
   <h4 class='right text-uppercase'>By Brian Weinfeld</h4>
   <div class='clearfix'></div>
-  <h5 class='right text-uppercase'>February 25, 2018</h5>
+  <h5 class='right text-uppercase'>March 02, 2018</h5>
 </div>
 
 <div class='page-header text-uppercase'>
@@ -29,7 +29,8 @@ library(knitr)
 </div>
 
 ```{r}
-wide.data <- read.csv('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\assignments\\week4Assignment.csv', head=TRUE, stringsAsFactors=FALSE, na.strings='')
+wide.data <- read.csv('https://raw.githubusercontent.com/brian-cuny/607assignment4/master/week4Assignment.csv', 
+                      head=TRUE, stringsAsFactors=FALSE, na.strings='')
 kable(wide.data)
 ```
 
@@ -87,7 +88,7 @@ kable(wide.data)
 </div>
 
 ```{r}
-wide.data <- read.csv('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\assignments\\week4Assignment.csv', 
+wide.data <- read.csv('https://raw.githubusercontent.com/brian-cuny/607assignment4/master/week4Assignment.csv', 
                       head=TRUE, stringsAsFactors=FALSE, na.strings='') %>%
   rename(company=X, status=X.1) %>%
   filter(status != '') %>%
@@ -108,7 +109,7 @@ wide.data <- read.csv('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\as
   I began by comparing the rate of on time arrivals between the two companies for each of their 5 locations.
 </div>
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 wide.data %>%
   mutate(prop=`on time`/(`on time` + delayed)) %>%
   ggplot() + 
